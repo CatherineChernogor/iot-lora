@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_restful import Resource, Api, reqparse
 import sqlite3
 from datetime import datetime
@@ -32,6 +32,22 @@ class Data(Resource):
 
 
 api.add_resource(Data, '/data/<string:device_code>')
+
+
+@app.route('/check/<string:device_code>', methods=['GET'])
+def check_coords(device_code):
+    try:
+        qr_id = select("id", "qr", f'device_code=\"{device_code}\"', "1")[0]
+
+        response = select("lat, long", "coord", f'qr_id=\"{qr_id[0]}\"', "1")[0]
+
+        return jsonify({
+            'lat': response[0],
+            'long': response[1]
+        }), 200
+
+    except Exception:
+        return "invalid", 500
 
 
 @app.route('/register/<string:device_code>', methods=['POST'])
@@ -119,7 +135,7 @@ def select(fields, table, condition, limit):
         string += f" limit {limit};"
     else:
         limit += ";"
-    print(string)
+    # print(string)
     cursor.execute(string)
     return cursor.fetchall()
 
@@ -133,7 +149,7 @@ def insert(fields, table):
 
     string = f'insert into {table} values (NULL, {questions})'
 
-    print(string, fields)
+    # print(string, fields)
     cursor.execute(string, fields)
     connection.commit()
 
