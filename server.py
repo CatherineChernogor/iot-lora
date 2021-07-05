@@ -75,8 +75,10 @@ def register_new_device():
         type = device["type"]
         period = device["period"]
 
+        blob_qr = str(qr)
+
         insert([type, period, code], "device")
-        insert([qr, code], "qr")
+        insert([blob_qr, code], "qr")
 
         return "ok", 200
 
