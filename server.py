@@ -39,7 +39,7 @@ def check_coords(device_code):
     try:
         qr_id = select("id", "qr", f'device_code=\"{device_code}\"', "1")[0]
 
-        response = select("lat, long", "coord", f'qr_id=\"{qr_id[0]}\"', "1")[0]
+        response = select("lat, long", "coord", f'qr_id=\"{qr_id[0]}\"', "1")[-1]
 
         return jsonify({
             'lat': response[0],
