@@ -77,6 +77,17 @@ def register_coords(device_code):
         return "invalid", 500
 
 
+@app.route('/delete/<string:device_code>', methods=['PUT'])
+def delete_device(device_code):
+    try:
+
+        update("device", "is_deleted", "1", f"code = \"{device_code}\"")
+        return "ok", 200
+
+    except Exception:
+        return "invalid", 500
+
+
 @app.route('/register/', methods=['POST'])
 def register_new_device():
     try:
@@ -170,6 +181,17 @@ def insert(fields, table):
     # print(string, fields)
     cursor.execute(string, fields)
     connection.commit()
+
+
+def update(table, field, value, condition):
+    connection, cursor = make_connection()
+
+    string = f"update {table} set {field} = {value} where {condition}"
+    # print(string)
+
+    cursor.execute(string)
+    connection.commit()
+    cursor.close()
 
 
 if __name__ == '__main__':
