@@ -7,7 +7,7 @@ app = Flask(__name__)
 api = Api(app)
 
 parser = reqparse.RequestParser()
-parser.add_argument('value')
+# parser.add_argument('value')
 parser.add_argument('amount')
 
 
@@ -23,10 +23,11 @@ class Data(Resource):
 
     def post(self, device_code):
         timestamp = datetime.now()
-        args = parser.parse_args()
-        value = args['value']
+        device = request.json['device']
+        value = device["value"]
+        rssi = device["rssi"]
 
-        insert([device_code, value, timestamp], "measures")
+        insert([device_code, value, timestamp, rssi], "measures")
 
         return "ok", 200
 
@@ -45,6 +46,16 @@ def check_coords(device_code):
             'lat': response[0],
             'long': response[1]
         }), 200
+
+    except Exception:
+        return "invalid", 500
+
+
+@app.route('/devices', methods=['GET'])
+def get_all_available_devices():
+    try:
+        response = select("*", "device", f'is_deleted=0', "")
+        return jsonify({"devices": response}), 200
 
     except Exception:
         return "invalid", 500
@@ -74,10 +85,12 @@ def register_new_device():
         qr = device["qr"]
         type = device["type"]
         period = device["period"]
+        freq = device["freq"]
+        is_deleted = 0
 
         blob_qr = str(qr)
 
-        insert([type, period, code], "device")
+        insert([type, period, code, freq, is_deleted], "device")
         insert([blob_qr, code], "qr")
 
         return "ok", 200
@@ -91,7 +104,9 @@ def create_tables(conn, cur):
        id INTEGER PRIMARY KEY AUTOINCREMENT not null,
        type TEXT,
        period INTEGER,
-       code TEXT);
+       code TEXT,
+       freq TEXT,
+       is_deleted INTEGER);
     """)
     conn.commit()
     cur.execute("""CREATE TABLE IF NOT EXISTS qr(
@@ -112,7 +127,8 @@ def create_tables(conn, cur):
            id INTEGER PRIMARY KEY AUTOINCREMENT  not null,
            device_code TEXT,
            value INTEGER,
-           datetime TIMESTAMP);
+           datetime TIMESTAMP,
+           rssi INTEGER);
         """)
     conn.commit()
 
