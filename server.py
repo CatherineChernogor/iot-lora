@@ -37,18 +37,18 @@ api.add_resource(Data, '/data/<string:device_code>')
 
 @app.route('/check/<string:device_code>', methods=['GET'])
 def check_coords(device_code):
-    try:
-        qr_id = select("id", "qr", f'device_code=\"{device_code}\"', "1")[0]
+    # try:
+    qr_id = select("id", "qr", f'device_code=\"{device_code}\"', "1")[0]
 
-        response = select("lat, long", "coord", f'qr_id=\"{qr_id[0]}\"', "1")[-1]
+    response = select("latitude, longitude", "coord", f'qr_id=\"{qr_id[0]}\"', "1")[-1]
 
-        return jsonify({
-            'lat': response[0],
-            'long': response[1]
-        }), 200
+    return jsonify({
+        'latitude': response[0],
+        'longitude': response[1]
+    }), 200
 
-    except Exception:
-        return "invalid", 500
+    # except Exception:
+    #     return "invalid", 500
 
 
 @app.route('/devices', methods=['GET'])
@@ -65,11 +65,11 @@ def get_all_available_devices():
 def register_coords(device_code):
     try:
         device = request.json['device']
-        lat = device["lat"]
-        long = device["long"]
+        latitude = device["latitude"]
+        longitude = device["longitude"]
 
         qr_id = select("id", "qr", f'device_code=\"{device_code}\"', "1")[0]
-        insert([qr_id[0], lat, long], 'coord')
+        insert([qr_id[0], latitude, longitude], 'coord')
 
         return "ok", 200
 
@@ -129,8 +129,8 @@ def create_tables(conn, cur):
     cur.execute("""CREATE TABLE IF NOT EXISTS coord(
           id INTEGER PRIMARY KEY AUTOINCREMENT  not null,
           qr_id INTEGER,
-          lat INTEGER,
-          long INTEGER);
+          latitude INTEGER,
+          longitude INTEGER);
        """)
     conn.commit()
 
