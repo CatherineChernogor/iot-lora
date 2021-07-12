@@ -13,23 +13,31 @@ parser.add_argument('amount')
 
 class Data(Resource):
     def get(self, device_code):
-        args = parser.parse_args()
-        amount = args['amount']
+        try:
+            args = parser.parse_args()
+            amount = args['amount']
 
-        if amount == None:
-            return select("*", "measures", f"device_code=\"{device_code}\"", 10), 200
-        else:
-            return select("*", "measures", f"device_code=\"{device_code}\"", amount), 200
+            if amount == None:
+                return select("*", "measures", f"device_code=\"{device_code}\"", 10), 200
+            else:
+                return select("*", "measures", f"device_code=\"{device_code}\"", amount), 200
+
+        except (Exception, UnicodeDecodeError) as e:
+            return e, 500
 
     def post(self, device_code):
-        timestamp = datetime.now()
-        device = request.json['device']
-        value = device["value"]
-        rssi = device["rssi"]
+        try:
+            timestamp = datetime.now()
+            device = request.json['device']
+            value = device["value"]
+            rssi = device["rssi"]
 
-        insert([device_code, value, timestamp, rssi], "measures")
+            insert([device_code, value, timestamp, rssi], "measures")
 
-        return "ok", 200
+            return "ok", 200
+
+        except (Exception, UnicodeDecodeError) as e:
+            return e, 500
 
 
 api.add_resource(Data, '/data/<string:device_code>')
@@ -37,18 +45,18 @@ api.add_resource(Data, '/data/<string:device_code>')
 
 @app.route('/check/<string:device_code>', methods=['GET'])
 def check_coords(device_code):
-    # try:
-    qr_id = select("id", "qr", f'device_code=\"{device_code}\"', "1")[0]
+    try:
+        qr_id = select("id", "qr", f'device_code=\"{device_code}\"', "1")[0]
 
-    response = select("latitude, longitude", "coord", f'qr_id=\"{qr_id[0]}\"', "1")[-1]
+        response = select("latitude, longitude", "coord", f'qr_id=\"{qr_id[0]}\"', "1")[-1]
 
-    return jsonify({
-        'latitude': response[0],
-        'longitude': response[1]
-    }), 200
+        return jsonify({
+            'latitude': response[0],
+            'longitude': response[1]
+        }), 200
 
-    # except Exception:
-    #     return "invalid", 500
+    except (Exception, UnicodeDecodeError) as e:
+        return e, 500
 
 
 @app.route('/devices', methods=['GET'])
@@ -57,8 +65,8 @@ def get_all_available_devices():
         response = select("*", "device", f'is_deleted=0', "")
         return jsonify({"devices": response}), 200
 
-    except Exception:
-        return "invalid", 500
+    except (Exception, UnicodeDecodeError) as e:
+        return e, 500
 
 
 @app.route('/register/<string:device_code>', methods=['POST'])
@@ -73,8 +81,8 @@ def register_coords(device_code):
 
         return "ok", 200
 
-    except Exception:
-        return "invalid", 500
+    except (Exception, UnicodeDecodeError) as e:
+        return e, 500
 
 
 @app.route('/delete/<string:device_code>', methods=['PUT'])
@@ -84,8 +92,8 @@ def delete_device(device_code):
         update("device", "is_deleted", "1", f"code = \"{device_code}\"")
         return "ok", 200
 
-    except Exception:
-        return "invalid", 500
+    except (Exception, UnicodeDecodeError) as e:
+        return e, 500
 
 
 @app.route('/register/', methods=['POST'])
@@ -106,8 +114,8 @@ def register_new_device():
 
         return "ok", 200
 
-    except Exception:
-        return "invalid", 500
+    except (Exception, UnicodeDecodeError) as e:
+        return e, 500
 
 
 def create_tables(conn, cur):
@@ -164,7 +172,7 @@ def select(fields, table, condition, limit):
         string += f" limit {limit};"
     else:
         limit += ";"
-    # print(string)
+
     cursor.execute(string)
     return cursor.fetchall()
 
@@ -178,16 +186,15 @@ def insert(fields, table):
 
     string = f'insert into {table} values (NULL, {questions})'
 
-    # print(string, fields)
     cursor.execute(string, fields)
     connection.commit()
+    cursor.close()
 
 
 def update(table, field, value, condition):
     connection, cursor = make_connection()
 
     string = f"update {table} set {field} = {value} where {condition}"
-    # print(string)
 
     cursor.execute(string)
     connection.commit()

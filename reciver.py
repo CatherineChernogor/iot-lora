@@ -14,9 +14,27 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((gateway_adress, gateway_port))
 
 
-def send_post(device_code, value):
-    r = requests.post(f"http://{flask_adress}:{flask_port}/data/{device_code}", data={'value': value})
+def send_post(device_code, value, rssi):
+    data = {"device": {
+        "value": value,
+        "rssi": rssi
+    }}
+    r = requests.post(f"http://{flask_adress}:{flask_port}/data/{device_code}", data=data)
     print(r.status_code, r.reason)
+
+
+def get_device_code_by_freq(freq):
+    r = requests.get(f"http://{flask_adress}:{flask_port}/devices")
+    data = r.content.decode()
+    data = json.loads(data)
+
+    for line in data["devices"]:
+        f = line[4]
+        if float(f) == float(freq):
+            return line[3]
+
+    print(r.status_code, r.reason)
+    return "nothing found"
 
 
 if __name__ == '__main__':
@@ -28,12 +46,13 @@ if __name__ == '__main__':
             data = json.loads(rec)
             data = data['rxpk'][0]
 
-            # if data["freq"] == 868.1:
             msg = data["data"]
-            datr = data["datr"]
-            # where should i get value and device code? cuz device code is generated at android app but datr
-            # generated at device
-            msg = base64.b64decode(msg)
-            send_post(datr, msg)
-            print(f"send {datr} {msg}")
+            freq = data["freq"]
+            rssi = data["rssi"]
+
+            value = base64.b64decode(msg)
+            device_code = get_device_code_by_freq(freq)
+
+            send_post(device_code, value, rssi)
+            print(f"send post {device_code} {value} {rssi}")
         time.sleep(0.5)
